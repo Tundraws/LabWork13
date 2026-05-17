@@ -89,3 +89,8 @@ class FakeNATSGateway:
         callback = self.subscribers["supply.results"]
         await callback(json.dumps(payload).encode("utf-8"))
         await asyncio.sleep(0)
+
+    async def emit_bid(self, payload: dict[str, Any]) -> None:
+        callback = self.subscribers["supply.auction.reply"]
+        await callback(json.dumps(payload).encode("utf-8"))
+        await asyncio.sleep(0)

@@ -55,6 +55,13 @@ class AgentBid(BaseModel):
     confidence: float = Field(ge=0, le=1)
 
 
+class AuctionResponse(BaseModel):
+    task_id: str
+    role: AgentRole
+    bids: list[AgentBid]
+    winner: AgentBid | None = None
+
+
 class PipelineResponse(BaseModel):
     trace_id: UUID = Field(default_factory=uuid4)
     sku: str

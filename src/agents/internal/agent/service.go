@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/nats-io/nats.go"
 	"github.com/tundraws/labwork13/src/agents/internal/config"
 	"github.com/tundraws/labwork13/src/agents/internal/domain"
 	"github.com/tundraws/labwork13/src/agents/internal/messaging"
@@ -85,7 +84,7 @@ func (s Service) handleBid(ctx context.Context, data []byte) error {
 		return err
 	}
 	count, err := s.store.ProcessedCount(ctx, s.cfg.InstanceID)
-	if err != nil && !errors.Is(err, nats.ErrNoResponders) {
+	if err != nil && !errors.Is(err, context.Canceled) {
 		s.logger.Error("bid state read failed", "error", err)
 	}
 	bid := s.processor.EstimateBid(request, count)

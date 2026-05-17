@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from app.api.dependencies import get_orchestrator
-from app.models.supply_chain import AgentRole, BidRequest, DemandRequest, EventRecord, PipelineResponse
+from app.models.supply_chain import AgentRole, AuctionResponse, DemandRequest, EventRecord, PipelineResponse
 from app.services.orchestrator import SupplyChainOrchestrator
 
 router = APIRouter(prefix="/api/v1", tags=["supply-chain"])
@@ -17,12 +17,12 @@ async def run_pipeline(
     return await orchestrator.run_pipeline(request)
 
 
-@router.post("/auction/{role}", response_model=BidRequest)
+@router.post("/auction/{role}", response_model=AuctionResponse)
 async def collect_bids(
     role: AgentRole,
     request: DemandRequest,
     orchestrator: SupplyChainOrchestrator = Depends(get_orchestrator),
-) -> BidRequest:
+) -> AuctionResponse:
     return await orchestrator.collect_bids(request, role)
 
 

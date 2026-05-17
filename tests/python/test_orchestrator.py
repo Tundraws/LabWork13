@@ -70,3 +70,41 @@ async def test_pipeline_returns_failed_status_after_timeout() -> None:
     assert response.status == "failed"
     assert response.results[0].role == "forecast"
     assert "Timeout" in response.results[0].error or "timeout" in response.results[0].error
+
+
+@pytest.mark.asyncio
+async def test_auction_selects_lowest_cost_bid() -> None:
+    bus = FakeNATSGateway()
+    orchestrator = SupplyChainOrchestrator(bus, InMemoryEventStore(), timeout_seconds=1, retry_attempts=1)
+    await orchestrator.start()
+
+    async def send_bids() -> None:
+        while not bus.published:
+            await asyncio.sleep(0)
+        _, request = bus.published[-1]
+        await bus.emit_bid(
+            {
+                "task_id": request["task_id"],
+                "agent": "expensive-agent",
+                "role": "forecast",
+                "cost": 18,
+                "confidence": 0.95,
+            }
+        )
+        await bus.emit_bid(
+            {
+                "task_id": request["task_id"],
+                "agent": "cheap-agent",
+                "role": "forecast",
+                "cost": 9,
+                "confidence": 0.88,
+            }
+        )
+
+    worker = asyncio.create_task(send_bids())
+    response = await orchestrator.collect_bids(build_request(), "forecast")
+    await worker
+
+    assert response.winner is not None
+    assert response.winner.agent == "cheap-agent"
+    assert len(response.bids) == 2

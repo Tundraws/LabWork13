@@ -7,9 +7,11 @@ from uuid import uuid4
 
 from app.infrastructure.event_store import InMemoryEventStore
 from app.models.supply_chain import (
+    AgentBid,
     AgentResult,
     AgentRole,
     AgentTask,
+    AuctionResponse,
     BidRequest,
     DemandRequest,
     EventRecord,
@@ -45,10 +47,12 @@ class SupplyChainOrchestrator:
         self._retry_attempts = retry_attempts
         self._advisor = advisor or RiskAdvisor()
         self._pending: dict[str, asyncio.Future[AgentResult]] = {}
+        self._bid_windows: dict[str, list[AgentBid]] = {}
         self._lock = asyncio.Lock()
 
     async def start(self) -> None:
         await self._bus.subscribe("supply.results", self._on_result)
+        await self._bus.subscribe("supply.auction.reply", self._on_bid)
 
     async def run_pipeline(self, request: DemandRequest) -> PipelineResponse:
         trace_id = str(uuid4())
@@ -127,11 +131,24 @@ class SupplyChainOrchestrator:
             return
         future.set_result(result)
 
-    async def collect_bids(self, request: DemandRequest, role: AgentRole) -> BidRequest:
+    async def _on_bid(self, data: bytes) -> None:
+        bid = AgentBid.model_validate_json(data)
+        async with self._lock:
+            window = self._bid_windows.get(bid.task_id)
+            if window is not None:
+                window.append(bid)
+
+    async def collect_bids(self, request: DemandRequest, role: AgentRole) -> AuctionResponse:
         bid_request = BidRequest(task_id=str(uuid4()), type=role, payload=request.model_dump())
+        async with self._lock:
+            self._bid_windows[bid_request.task_id] = []
         await self._bus.publish_json("supply.auction.bid", bid_request.model_dump())
-        self._record(str(uuid4()), "INFO", "auction requested", {"role": role})
-        return bid_request
+        self._record(str(uuid4()), "INFO", "auction requested", {"role": role, "task_id": bid_request.task_id})
+        await asyncio.sleep(0.25)
+        async with self._lock:
+            bids = self._bid_windows.pop(bid_request.task_id, [])
+        winner = min(bids, key=lambda bid: (bid.cost, -bid.confidence), default=None)
+        return AuctionResponse(task_id=bid_request.task_id, role=role, bids=bids, winner=winner)
 
     def recent_events(self, limit: int = 50) -> list[EventRecord]:
         return self._events.list_recent(limit)
