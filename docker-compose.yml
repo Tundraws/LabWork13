@@ -1,0 +1,145 @@
+name: labwork13-supply-chain
+
+services:
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [supply-chain]
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [supply-chain]
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"
+      - "4318:4318"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:16686"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    networks: [supply-chain]
+
+  orchestrator:
+    build:
+      context: ./src/orchestrator
+    environment:
+      NATS_URL: nats://nats:4222
+      REDIS_URL: redis://redis:6379/0
+      JAEGER_ENDPOINT: http://jaeger:4318/v1/traces
+      TASK_TIMEOUT_SECONDS: 12
+      TASK_RETRY_ATTEMPTS: 3
+    ports:
+      - "8000:8000"
+    depends_on:
+      nats:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      jaeger:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [supply-chain]
+
+  forecast-agent:
+    build:
+      context: ./src/agents
+    environment:
+      NATS_URL: nats://nats:4222
+      REDIS_URL: redis://redis:6379/0
+      JAEGER_ENDPOINT: http://jaeger:4318/v1/traces
+      AGENT_INSTANCE_ID: forecast-1
+      AGENT_CONFIG_PATH: /app/configs/agents/forecast.yaml
+    volumes:
+      - ./configs:/app/configs:ro
+    depends_on:
+      nats:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [supply-chain]
+
+  ordering-agent:
+    build:
+      context: ./src/agents
+    environment:
+      NATS_URL: nats://nats:4222
+      REDIS_URL: redis://redis:6379/0
+      JAEGER_ENDPOINT: http://jaeger:4318/v1/traces
+      AGENT_INSTANCE_ID: ordering-1
+      AGENT_CONFIG_PATH: /app/configs/agents/ordering.yaml
+    volumes:
+      - ./configs:/app/configs:ro
+    depends_on:
+      nats:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [supply-chain]
+
+  tracking-agent:
+    build:
+      context: ./src/agents
+    environment:
+      NATS_URL: nats://nats:4222
+      REDIS_URL: redis://redis:6379/0
+      JAEGER_ENDPOINT: http://jaeger:4318/v1/traces
+      AGENT_INSTANCE_ID: tracking-1
+      AGENT_CONFIG_PATH: /app/configs/agents/tracking.yaml
+    volumes:
+      - ./configs:/app/configs:ro
+    depends_on:
+      nats:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [supply-chain]
+
+  risk-agent:
+    build:
+      context: ./src/agents
+    environment:
+      NATS_URL: nats://nats:4222
+      REDIS_URL: redis://redis:6379/0
+      JAEGER_ENDPOINT: http://jaeger:4318/v1/traces
+      AGENT_INSTANCE_ID: risk-1
+      AGENT_CONFIG_PATH: /app/configs/agents/risk.yaml
+    volumes:
+      - ./configs:/app/configs:ro
+    depends_on:
+      nats:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [supply-chain]
+
+networks:
+  supply-chain:
+    driver: bridge
+
+volumes:
+  redis-data:

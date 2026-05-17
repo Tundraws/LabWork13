@@ -1,0 +1,7 @@
+role: risk
+display_name: "Агент управления рисками"
+communication: "Получает контекст цепочки и оценивает операционный риск."
+specialization: "Риски задержек, объема поставки и fallback-рекомендации."
+rules:
+  - "Risk score is normalized from 0 to 1."
+  - "High risk requires a backup supplier recommendation."

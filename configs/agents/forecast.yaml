@@ -1,0 +1,7 @@
+role: forecast
+display_name: "Агент прогнозирования спроса"
+communication: "Получает задачу из NATS, возвращает прогноз и рекомендуемый объем заказа."
+specialization: "Анализ продаж, сезонности и остатка товара."
+rules:
+  - "avg_daily_sales and planning_days must be positive."
+  - "reorder_units is never negative."

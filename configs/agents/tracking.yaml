@@ -1,0 +1,7 @@
+role: tracking
+display_name: "Агент отслеживания поставок"
+communication: "Получает данные заказа и публикует статус перевозки."
+specialization: "Контроль статуса, ETA и текущей контрольной точки."
+rules:
+  - "eta_days cannot be negative."
+  - "Delivered status is returned when eta_days is zero."
