@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
 import pytest
 
@@ -50,6 +51,21 @@ async def test_pipeline_success() -> None:
                     "pipeline_log": task["pipeline_log"] + [{"agent": role, "output": output}],
                 }
             )
+        while not bus.published or bus.published[-1][0] != "supply.tasks.llm":
+            await asyncio.sleep(0)
+        _, llm_task = bus.published[-1]
+        await bus.subscribers["supply.llm.results"](
+            json.dumps(
+                {
+                    "task_id": llm_task["id"],
+                    "trace_id": llm_task["trace_id"],
+                    "agent": "python-llm-risk-advisor",
+                    "success": True,
+                    "recommendation": "Подтвердить резервного поставщика.",
+                    "provider": "offline-rule-provider",
+                }
+            ).encode("utf-8")
+        )
 
     worker = asyncio.create_task(complete_published_tasks())
     response = await orchestrator.run_pipeline(build_request())
@@ -57,6 +73,7 @@ async def test_pipeline_success() -> None:
 
     assert response.status == "completed"
     assert [result.role for result in response.results] == ["forecast", "ordering", "tracking", "risk"]
+    assert response.results[-1].output["llm_provider"] == "offline-rule-provider"
 
 
 @pytest.mark.asyncio

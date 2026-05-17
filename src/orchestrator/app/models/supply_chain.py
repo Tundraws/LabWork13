@@ -62,6 +62,23 @@ class AuctionResponse(BaseModel):
     winner: AgentBid | None = None
 
 
+class LLMTask(BaseModel):
+    id: str
+    trace_id: str
+    sku: str
+    context: dict[str, Any] = Field(default_factory=dict)
+
+
+class LLMResult(BaseModel):
+    task_id: str
+    trace_id: str
+    agent: str
+    success: bool
+    recommendation: str
+    provider: str
+    error: str | None = None
+
+
 class PipelineResponse(BaseModel):
     trace_id: UUID = Field(default_factory=uuid4)
     sku: str
@@ -81,3 +98,11 @@ class EventRecord(BaseModel):
     message: str
     payload: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ScalingDecision(BaseModel):
+    role: AgentRole
+    current_replicas: int = Field(ge=1)
+    desired_replicas: int = Field(ge=1)
+    scaled: bool
+    implementation: str

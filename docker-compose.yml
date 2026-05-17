@@ -61,6 +61,20 @@ services:
     restart: unless-stopped
     networks: [supply-chain]
 
+  llm-agent:
+    build:
+      context: ./src/llm-agent
+    environment:
+      NATS_URL: nats://nats:4222
+      JAEGER_ENDPOINT: http://jaeger:4318/v1/traces
+    depends_on:
+      nats:
+        condition: service_healthy
+      jaeger:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [supply-chain]
+
   forecast-agent:
     build:
       context: ./src/agents
