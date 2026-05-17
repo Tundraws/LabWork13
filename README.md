@@ -97,6 +97,8 @@ curl -X POST http://localhost:8000/api/v1/auction/forecast \
   -d '{"sku":"SKU-25","avg_daily_sales":18,"seasonality_index":1.3,"planning_days":14,"current_stock":120}'
 ```
 
+Ответ содержит список ставок агентов и выбранного победителя с минимальной стоимостью.
+
 ## Масштабирование агентов
 
 Дополнительные экземпляры агента можно запустить средствами Docker Compose:
