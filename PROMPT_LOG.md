@@ -12,6 +12,8 @@
 
 - Go-микросервис универсального агента с конфигурацией ролей: Forecast, Ordering, Tracking, Risk.
 - Python FastAPI-оркестратор с pipeline, retry/timeout, API и dashboard.
+- Отдельный Python LLM-агент с offline provider и опциональной интеграцией Ollama.
+- Autoscaler-service для автоматической оценки необходимости дополнительных реплик.
 - Docker Compose с NATS, Redis, Jaeger, оркестратором и четырьмя агентами.
 - Тесты Go и Python.
 - README, архитектурная схема, CI, `.gitignore`, `.env.example`.
@@ -19,7 +21,7 @@
 ## Проблемы и исправления
 
 - Репозиторий был пустым, структура проекта создана с нуля.
-- Для прохождения offline-проверок LLM-советник реализован с детерминированным fallback, чтобы тесты не зависели от внешнего API.
+- Для прохождения offline-проверок LLM-агент реализован с детерминированным fallback, чтобы тесты и запуск не зависели от внешнего API или локальной модели.
 - Бизнес-логика вынесена из transport-слоя для тестируемости.
 
 ## Runtime issues
@@ -33,3 +35,5 @@
 - Добавлены healthcheck-и Docker Compose.
 - Добавлено состояние агентов в Redis.
 - Добавлены события мониторинга и dashboard.
+- Добавлены OpenTelemetry spans в Python-оркестратор и LLM-агент.
+- Добавлена форма ручного запуска pipeline с dashboard.

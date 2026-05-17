@@ -15,9 +15,13 @@ flowchart LR
     O --> Redis
     T --> Redis
     R --> Redis
+    ORCH -->|NATS: supply.tasks.llm| LLM[Python LLM Agent]
+    LLM -->|NATS: supply.llm.results| ORCH
+    ORCH --> AS[Autoscaler Service]
     ORCH --> Jaeger[Jaeger traces]
+    LLM --> Jaeger
 ```
 
-Pipeline: прогнозирование спроса -> заказ у поставщика -> отслеживание поставки -> оценка рисков.
+Pipeline: прогнозирование спроса -> заказ у поставщика -> отслеживание поставки -> оценка рисков -> LLM-рекомендация.
 Агенты реализованы одним универсальным Go-сервисом, специализация задаётся YAML-конфигурацией.
 События pipeline доступны в REST API и на dashboard.
