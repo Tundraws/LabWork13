@@ -3,7 +3,16 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from app.api.dependencies import get_orchestrator
-from app.models.supply_chain import AgentRole, AuctionResponse, DemandRequest, EventRecord, PipelineResponse
+from fastapi import Request
+
+from app.models.supply_chain import (
+    AgentRole,
+    AuctionResponse,
+    DemandRequest,
+    EventRecord,
+    PipelineResponse,
+    ScalingDecision,
+)
 from app.services.orchestrator import SupplyChainOrchestrator
 
 router = APIRouter(prefix="/api/v1", tags=["supply-chain"])
@@ -32,3 +41,9 @@ async def recent_events(
     orchestrator: SupplyChainOrchestrator = Depends(get_orchestrator),
 ) -> list[EventRecord]:
     return orchestrator.recent_events(limit)
+
+
+@router.post("/scaling/{role}", response_model=ScalingDecision)
+async def evaluate_scaling(role: AgentRole, request: Request) -> ScalingDecision:
+    decision = request.app.state.autoscaler.evaluate(role)
+    return ScalingDecision.model_validate(decision)
